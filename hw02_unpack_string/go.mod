@@ -1,4 +1,4 @@
-module github.com/mayerkv/hw02_unpack_string
+module github.com/mayerkv/otus_go_homework/hw02_unpack_string
 
 go 1.16
 
