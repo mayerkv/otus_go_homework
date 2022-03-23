@@ -24,10 +24,7 @@ func Top10(s string) []string {
 	wordsCountSlice := make([]wordCount, 0, len(wordsCountMap))
 
 	for w, cnt := range wordsCountMap {
-		wordsCountSlice = append(wordsCountSlice, struct {
-			w   string
-			cnt int
-		}{w, cnt})
+		wordsCountSlice = append(wordsCountSlice, wordCount{w, cnt})
 	}
 
 	sort.Slice(wordsCountSlice, func(i, j int) bool {
@@ -45,10 +42,8 @@ func Top10(s string) []string {
 		wordsCount = len(wordsCountSlice)
 	}
 
-	wordsCountSlice = wordsCountSlice[:wordsCount]
-
 	res := make([]string, 0, wordsCount)
-	for _, item := range wordsCountSlice {
+	for _, item := range wordsCountSlice[:wordsCount] {
 		res = append(res, item.w)
 	}
 
