@@ -50,7 +50,20 @@ func TestCache(t *testing.T) {
 	})
 
 	t.Run("purge logic", func(t *testing.T) {
-		// Write me
+		c := NewCache(10)
+
+		c.Set("1", 1)
+
+		val, ok := c.Get("1")
+
+		require.True(t, ok)
+		require.Equal(t, val, 1)
+
+		c.Clear()
+
+		val, ok = c.Get("1")
+		require.False(t, ok)
+		require.Nil(t, val)
 	})
 }
 
@@ -76,4 +89,37 @@ func TestCacheMultithreading(t *testing.T) {
 	}()
 
 	wg.Wait()
+}
+
+func TestLruCache_Set(t *testing.T) {
+	t.Run("when capacity exceeded, then push out first", func(t *testing.T) {
+		c := NewCache(3)
+
+		c.Set("1", 1)
+		c.Set("2", 2)
+		c.Set("3", 3)
+		c.Set("4", 4)
+
+		v, ok := c.Get("1")
+		require.False(t, ok)
+		require.Nil(t, v)
+	})
+
+	t.Run("", func(t *testing.T) {
+		c := NewCache(3)
+
+		c.Set("1", 1)
+		c.Set("2", 2)
+		c.Set("3", 3)
+
+		v, ok := c.Get("1")
+		require.True(t, ok)
+		require.Equal(t, v, 1)
+
+		c.Set("4", 4)
+
+		v, ok = c.Get("2")
+		require.False(t, ok)
+		require.Nil(t, v)
+	})
 }
