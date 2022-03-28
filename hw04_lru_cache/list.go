@@ -104,7 +104,7 @@ func (l *list) MoveToFront(i *ListItem) {
 	if l.back == i {
 		i.Prev.Next = nil
 		l.back = i.Prev
-	} else {
+	} else if i.Next != nil {
 		i.Next.Prev = i.Prev
 	}
 
