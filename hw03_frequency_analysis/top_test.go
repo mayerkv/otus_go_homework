@@ -79,4 +79,17 @@ func TestTop10(t *testing.T) {
 			require.Equal(t, expected, Top10(text))
 		}
 	})
+
+	t.Run("slice length less than 10", func(t *testing.T) {
+		someText := "test test foo bar"
+		expected := []string{
+			"test",
+			"bar",
+			"foo",
+		}
+		actual := Top10(someText)
+
+		require.Equal(t, expected, actual)
+		require.Equal(t, cap(actual), 3)
+	})
 }
