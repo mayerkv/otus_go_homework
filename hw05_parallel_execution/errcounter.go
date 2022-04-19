@@ -24,12 +24,12 @@ func (c *errCounter) addErr(err error) {
 }
 
 func (c *errCounter) isExceeded() bool {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
 	if c.maxErrs <= 0 {
 		return false
 	}
+
+	c.mu.Lock()
+	defer c.mu.Unlock()
 
 	return len(c.errors) >= c.maxErrs
 }
