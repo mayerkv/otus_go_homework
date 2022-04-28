@@ -90,4 +90,64 @@ func TestPipeline(t *testing.T) {
 		require.Len(t, result, 0)
 		require.Less(t, int64(elapsed), int64(abortDur)+int64(fault))
 	})
+
+	t.Run("when stages in empty, then returns original values", func(t *testing.T) {
+		in := make(Bi)
+		data := []int{1, 2, 3, 4, 5}
+
+		go func() {
+			for _, v := range data {
+				in <- v
+			}
+			close(in)
+		}()
+
+		result := make([]int, 0, 10)
+		for s := range ExecutePipeline(in, nil) {
+			result = append(result, s.(int))
+		}
+
+		require.Equal(t, data, result)
+	})
+}
+
+func Test_withDone(t *testing.T) {
+	type args struct {
+		done  In
+		in    In
+		stage Stage
+	}
+	tests := []struct {
+		name string
+		args args
+		want Out
+	}{
+		{
+			name: "when stage is nil",
+			args: args{
+				done:  make(In),
+				in:    make(In),
+				stage: nil,
+			},
+			want: make(Out),
+		},
+		{
+			name: "when stage is not nil",
+			args: args{
+				done: make(In),
+				in:   make(In),
+				stage: func(in In) (out Out) {
+					return in
+				},
+			},
+			want: make(Out),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := withDone(tt.args.done, tt.args.in, tt.args.stage); got == tt.want {
+				t.Errorf("withDone() = %v, want %v", got, tt.want)
+			}
+		})
+	}
 }
