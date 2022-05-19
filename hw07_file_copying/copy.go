@@ -42,7 +42,7 @@ func Copy(fromPath, toPath string, offset, limit int64) error {
 	}
 	defer dst.Close()
 
-	if _, err := src.Seek(offset, 0); err != nil {
+	if _, err := src.Seek(offset, io.SeekStart); err != nil {
 		return err
 	}
 
