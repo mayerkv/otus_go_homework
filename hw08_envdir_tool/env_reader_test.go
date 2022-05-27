@@ -6,16 +6,21 @@ import (
 	"testing"
 )
 
+const (
+	chmod0    = 0b0
+	chmod0664 = 0b000_110_110_100
+)
+
 func setup(t *testing.T) {
-	err := os.Chmod("testdata/envnopermission/NO_PERM", 000)
-	if err != nil {
+	t.Helper()
+	if err := os.Chmod("testdata/envnopermission/NO_PERM", chmod0); err != nil {
 		t.Error(err)
 	}
 }
 
 func teardown(t *testing.T) {
-	err := os.Chmod("testdata/envnopermission/NO_PERM", 0664)
-	if err != nil {
+	t.Helper()
+	if err := os.Chmod("testdata/envnopermission/NO_PERM", chmod0664); err != nil {
 		t.Error(err)
 	}
 }
