@@ -1,12 +1,11 @@
 package hw10programoptimization
 
 import (
-	"encoding/json"
-	"fmt"
+	"bufio"
 	"io"
-	"io/ioutil"
-	"regexp"
 	"strings"
+
+	jsoniter "github.com/json-iterator/go"
 )
 
 type User struct {
@@ -22,46 +21,78 @@ type User struct {
 type DomainStat map[string]int
 
 func GetDomainStat(r io.Reader, domain string) (DomainStat, error) {
-	u, err := getUsers(r)
-	if err != nil {
-		return nil, fmt.Errorf("get users error: %w", err)
+	lines, readErrors := readLines(r)
+	emails := extractEmail(lines)
+	domains := extractEmailDomain(emails, domain)
+
+	ds := make(DomainStat)
+	for {
+		select {
+		case err := <-readErrors:
+			if err != nil {
+				return nil, err
+			}
+		case d := <-domains:
+			if d == "" {
+				return ds, nil
+			}
+			ds[d]++
+		}
 	}
-	return countDomains(u, domain)
 }
 
-type users [100_000]User
-
-func getUsers(r io.Reader) (result users, err error) {
-	content, err := ioutil.ReadAll(r)
-	if err != nil {
-		return
-	}
-
-	lines := strings.Split(string(content), "\n")
-	for i, line := range lines {
-		var user User
-		if err = json.Unmarshal([]byte(line), &user); err != nil {
-			return
+func readLines(r io.Reader) (<-chan []byte, <-chan error) {
+	in := make(chan []byte)
+	errCh := make(chan error)
+	rd := bufio.NewReader(r)
+	go func() {
+		defer func() {
+			close(in)
+			close(errCh)
+		}()
+		for {
+			line, _, err := rd.ReadLine()
+			if err == io.EOF {
+				return
+			}
+			if err != nil {
+				errCh <- err
+				return
+			}
+			b := make([]byte, len(line))
+			copy(b, line)
+			in <- b
 		}
-		result[i] = user
-	}
-	return
+	}()
+	return in, errCh
 }
 
-func countDomains(u users, domain string) (DomainStat, error) {
-	result := make(DomainStat)
-
-	for _, user := range u {
-		matched, err := regexp.Match("\\."+domain, []byte(user.Email))
-		if err != nil {
-			return nil, err
+func extractEmail(lines <-chan []byte) <-chan string {
+	in := make(chan string)
+	go func() {
+		defer close(in)
+		for line := range lines {
+			email := jsoniter.Get(line, "Email").ToString()
+			if email != "" {
+				in <- email
+			}
 		}
+	}()
+	return in
+}
 
-		if matched {
-			num := result[strings.ToLower(strings.SplitN(user.Email, "@", 2)[1])]
-			num++
-			result[strings.ToLower(strings.SplitN(user.Email, "@", 2)[1])] = num
+func extractEmailDomain(emails <-chan string, domain string) <-chan string {
+	in := make(chan string)
+	go func() {
+		defer close(in)
+		for email := range emails {
+			if strings.HasSuffix(email, domain) {
+				parts := strings.SplitAfterN(email, "@", 2)
+				if len(parts) > 1 {
+					in <- strings.ToLower(parts[1])
+				}
+			}
 		}
-	}
-	return result, nil
+	}()
+	return in
 }
