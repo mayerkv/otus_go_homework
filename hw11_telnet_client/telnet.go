@@ -9,8 +9,8 @@ import (
 )
 
 type TelnetClient interface {
-	Connect() error
 	io.Closer
+	Connect() error
 	Send() error
 	Receive() error
 }
