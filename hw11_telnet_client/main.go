@@ -4,7 +4,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"log"
 	"net"
 	"os"
 	"os/signal"
@@ -19,8 +18,7 @@ func main() {
 
 	if flag.NArg() < 2 {
 		fmt.Fprintln(os.Stderr, "Host or port arguments must be provided.")
-		fmt.Fprintf(os.Stderr, "Usage: %s [options] host port\nOptions:\n", os.Args[0])
-		flag.PrintDefaults()
+		fmt.Fprintf(os.Stderr, "Usage: %s [--timeout duration] host port\n", os.Args[0])
 		os.Exit(1)
 	}
 
@@ -28,11 +26,13 @@ func main() {
 
 	client := NewTelnetClient(address, timeout, os.Stdin, os.Stdout)
 	if err := client.Connect(); err != nil {
-		log.Fatalf("Failed to establish connection : %s", err)
+		fmt.Fprintf(os.Stderr, "Failed to establish connection : %s", err)
+		os.Exit(1)
 	}
 	defer func() {
 		if err := client.Close(); err != nil {
-			log.Println(err)
+			fmt.Fprintf(os.Stderr, "Failed to close connection: %s", err)
+			os.Exit(1)
 		}
 	}()
 
@@ -50,7 +50,7 @@ func main() {
 func sender(cancel context.CancelFunc, client TelnetClient) {
 	defer cancel()
 	if err := client.Send(); err != nil {
-		log.Println(err)
+		fmt.Fprintf(os.Stderr, "sender error: %s", err)
 		return
 	}
 }
@@ -58,6 +58,6 @@ func sender(cancel context.CancelFunc, client TelnetClient) {
 func receiver(cancel context.CancelFunc, client TelnetClient) {
 	defer cancel()
 	if err := client.Receive(); err != nil {
-		log.Println(err)
+		fmt.Fprintf(os.Stderr, "receiver error: %s", err)
 	}
 }
