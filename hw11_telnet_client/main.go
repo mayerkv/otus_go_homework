@@ -7,7 +7,6 @@ import (
 	"net"
 	"os"
 	"os/signal"
-	"sync"
 	"syscall"
 	"time"
 )
@@ -41,31 +40,22 @@ func main() {
 	ctx, stop := signal.NotifyContext(ctx, syscall.SIGINT)
 	defer stop()
 
-	wg := sync.WaitGroup{}
-	wg.Add(2)
-	go receiver(&wg, cancel, client)
-	go sender(&wg, cancel, client)
+	go receiver(cancel, client)
+	go sender(cancel, client)
 
 	<-ctx.Done()
-	wg.Wait()
 }
 
-func sender(wg *sync.WaitGroup, cancel context.CancelFunc, client TelnetClient) {
-	defer func() {
-		cancel()
-		wg.Done()
-	}()
+func sender(cancel context.CancelFunc, client TelnetClient) {
+	defer cancel()
 	if err := client.Send(); err != nil {
 		fmt.Fprintf(os.Stderr, "sender error: %s", err)
 		return
 	}
 }
 
-func receiver(wg *sync.WaitGroup, cancel context.CancelFunc, client TelnetClient) {
-	defer func() {
-		cancel()
-		wg.Done()
-	}()
+func receiver(cancel context.CancelFunc, client TelnetClient) {
+	defer cancel()
 	if err := client.Receive(); err != nil {
 		fmt.Fprintf(os.Stderr, "receiver error: %s", err)
 	}

@@ -45,7 +45,11 @@ func (c *simpleClient) Connect() error {
 }
 
 func (c *simpleClient) Close() error {
-	return c.conn.Close()
+	if c.conn != nil {
+		return c.conn.Close()
+	}
+
+	return nil
 }
 
 func (c *simpleClient) Send() error {
