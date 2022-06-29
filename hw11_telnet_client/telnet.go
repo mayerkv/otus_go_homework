@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bufio"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -53,14 +55,16 @@ func (c *simpleClient) Close() error {
 }
 
 func (c *simpleClient) Send() error {
-	if _, err := io.Copy(c.conn, c.in); err != nil {
+	writer := bufio.NewWriter(c.conn)
+	if _, err := io.Copy(writer, c.in); err != nil && !errors.Is(err, io.EOF) {
 		return fmt.Errorf("sending error: %w", err)
 	}
 	return nil
 }
 
 func (c *simpleClient) Receive() error {
-	if _, err := io.Copy(c.out, c.conn); err != nil {
+	reader := bufio.NewReader(c.conn)
+	if _, err := io.Copy(c.out, reader); err != nil && !errors.Is(err, io.EOF) {
 		return fmt.Errorf("receiving error: %w", err)
 	}
 	return nil
