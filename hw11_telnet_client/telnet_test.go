@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"io/ioutil"
 	"net"
+	"os"
 	"sync"
 	"testing"
 	"time"
@@ -61,5 +62,20 @@ func TestTelnetClient(t *testing.T) {
 		}()
 
 		wg.Wait()
+	})
+
+	t.Run("invalid address", func(t *testing.T) {
+		c := NewTelnetClient("bad_address", time.Second, os.Stdin, os.Stdout)
+		err := c.Connect()
+		require.ErrorIs(t, err, ErrConnectionError)
+	})
+
+	t.Run("when conn is nil, then nothing", func(t *testing.T) {
+		c := &simpleClient{
+			conn: nil,
+		}
+
+		err := c.Close()
+		require.NoError(t, err)
 	})
 }
