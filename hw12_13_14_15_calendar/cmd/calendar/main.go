@@ -53,7 +53,7 @@ func runHTTPServer(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	logg := logger.New(config.Logger.Level)
+	logg := logger.New(logger.LevelFromString(config.Logger.Level))
 	storage := memorystorage.New()
 	calendar := app.New(logg, storage)
 	server := internalhttp.NewServer(logg, calendar)
