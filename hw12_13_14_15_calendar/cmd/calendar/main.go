@@ -10,7 +10,7 @@ import (
 	"github.com/mayerkv/otus_go_homework/hw12_13_14_15_calendar/internal/app"
 	"github.com/mayerkv/otus_go_homework/hw12_13_14_15_calendar/internal/logger"
 	internalhttp "github.com/mayerkv/otus_go_homework/hw12_13_14_15_calendar/internal/server/http"
-	memorystorage "github.com/mayerkv/otus_go_homework/hw12_13_14_15_calendar/internal/storage/memory"
+	sqlstorage "github.com/mayerkv/otus_go_homework/hw12_13_14_15_calendar/internal/storage/sql"
 	"github.com/spf13/cobra"
 )
 
@@ -28,6 +28,11 @@ func main() {
 		Use:   "version",
 		Short: "App version",
 		RunE:  runVersion,
+	})
+	rootCmd.AddCommand(&cobra.Command{
+		Use:   "migrate",
+		Short: "Run database migrations",
+		RunE:  runMigrations,
 	})
 
 	rootCmd.PersistentFlags().String("config", "/etc/calendar/config.toml", "Path to configuration file")
@@ -54,7 +59,19 @@ func runHTTPServer(cmd *cobra.Command, args []string) error {
 	}
 
 	logg := logger.New(logger.LevelFromString(config.Logger.Level))
-	storage := memorystorage.New()
+	storage := sqlstorage.New(
+		config.Postgres.DSN,
+		config.Postgres.MaxOpenConns,
+		config.Postgres.MaxIdleConns,
+		config.Postgres.ConnMaxLifetime,
+		config.Postgres.ConnMaxIdleTime,
+	)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := storage.Connect(ctx); err != nil {
+		return err
+	}
+
 	calendar := app.New(logg, storage)
 	server := internalhttp.NewServer(logg, calendar)
 
@@ -75,4 +92,31 @@ func runHTTPServer(cmd *cobra.Command, args []string) error {
 	logg.Info("calendar is running...")
 
 	return server.Start(notifyCtx)
+}
+
+func runMigrations(cmd *cobra.Command, args []string) error {
+	configFile, err := cmd.Root().PersistentFlags().GetString("config")
+	if err != nil {
+		return err
+	}
+
+	config, err := ReadConfig(configFile)
+	if err != nil {
+		return err
+	}
+
+	storage := sqlstorage.New(
+		config.Postgres.DSN,
+		config.Postgres.MaxOpenConns,
+		config.Postgres.MaxIdleConns,
+		config.Postgres.ConnMaxLifetime,
+		config.Postgres.ConnMaxIdleTime,
+	)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := storage.Connect(ctx); err != nil {
+		return err
+	}
+
+	return storage.Migrate(context.Background(), args[0])
 }

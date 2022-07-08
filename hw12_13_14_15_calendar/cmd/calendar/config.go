@@ -1,10 +1,15 @@
 package main
 
-import "github.com/spf13/viper"
+import (
+	"time"
+
+	"github.com/spf13/viper"
+)
 
 type Config struct {
-	Logger LoggerConf
-	HTTP   HTTPConf
+	Logger   LoggerConf
+	HTTP     HTTPConf
+	Postgres PostgresConf
 }
 
 type LoggerConf struct {
@@ -17,6 +22,14 @@ func NewConfig() Config {
 
 type HTTPConf struct {
 	Port int
+}
+
+type PostgresConf struct {
+	DSN             string
+	MaxOpenConns    int
+	ConnMaxLifetime time.Duration
+	MaxIdleConns    int
+	ConnMaxIdleTime time.Duration
 }
 
 func ReadConfig(path string) (*Config, error) {

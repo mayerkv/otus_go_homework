@@ -3,3 +3,6 @@ level = "INFO"
 
 [http]
 port = 8080
+
+[postgres]
+dsn = "postgresql://user:password@localhost:5432/calendar?sslmode=disable"
