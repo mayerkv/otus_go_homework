@@ -21,7 +21,8 @@ func NewConfig() Config {
 }
 
 type HTTPConf struct {
-	Port int
+	Port string
+	Host string
 }
 
 type PostgresConf struct {

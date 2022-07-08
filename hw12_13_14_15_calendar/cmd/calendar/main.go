@@ -73,7 +73,7 @@ func runHTTPServer(cmd *cobra.Command, args []string) error {
 	}
 
 	calendar := app.New(logg, storage)
-	server := internalhttp.NewServer(logg, calendar)
+	server := internalhttp.NewServer(logg, calendar, config.HTTP.Host, config.HTTP.Port)
 
 	notifyCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
 	defer stop()
