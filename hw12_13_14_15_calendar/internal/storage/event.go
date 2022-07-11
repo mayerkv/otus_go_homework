@@ -4,6 +4,10 @@ import "time"
 
 type EventID string
 
+func (id EventID) String() string {
+	return string(id)
+}
+
 type UserID string
 
 type Event struct {

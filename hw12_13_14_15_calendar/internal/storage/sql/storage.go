@@ -31,7 +31,17 @@ func (s *Storage) NextID(ctx context.Context) (storage.EventID, error) {
 }
 
 func (s *Storage) Save(ctx context.Context, event *storage.Event) error {
-	_, err := s.db.ExecContext(ctx, saveQuery, event.ID, event.Title, event.StartAt, event.EndAt, event.Description, event.OwnerID, event.NotifyAt)
+	_, err := s.db.ExecContext(
+		ctx,
+		saveQuery,
+		event.ID,
+		event.Title,
+		event.StartAt,
+		event.EndAt,
+		event.Description,
+		event.OwnerID,
+		event.NotifyAt,
+	)
 	if err != nil {
 		return err
 	}
@@ -48,7 +58,14 @@ func (s *Storage) FindByID(ctx context.Context, eventID storage.EventID) (*stora
 	}
 
 	var event storage.Event
-	if err := row.Scan(event.ID, event.Title, event.StartAt, event.EndAt, event.Description, event.NotifyAt); err != nil {
+	if err := row.Scan(
+		event.ID,
+		event.Title,
+		event.StartAt,
+		event.EndAt,
+		event.Description,
+		event.NotifyAt,
+	); err != nil {
 		return nil, err
 	}
 
@@ -60,7 +77,12 @@ func (s *Storage) Delete(ctx context.Context, event *storage.Event) error {
 	return err
 }
 
-func (s *Storage) FindAllByUserIDAndPeriod(ctx context.Context, userID storage.UserID, from time.Time, to time.Time) ([]storage.Event, error) {
+func (s *Storage) FindAllByUserIDAndPeriod(
+	ctx context.Context,
+	userID storage.UserID,
+	from time.Time,
+	to time.Time,
+) ([]storage.Event, error) {
 	rows, err := s.db.QueryContext(ctx, selectAllQuery, userID, from, to)
 	if err != nil {
 		return nil, err
@@ -74,7 +96,14 @@ func (s *Storage) FindAllByUserIDAndPeriod(ctx context.Context, userID storage.U
 	var events []storage.Event
 	for rows.Next() {
 		var event storage.Event
-		if err := rows.Scan(event.ID, event.Title, event.StartAt, event.EndAt, event.Description, event.NotifyAt); err != nil {
+		if err := rows.Scan(
+			event.ID,
+			event.Title,
+			event.StartAt,
+			event.EndAt,
+			event.Description,
+			event.NotifyAt,
+		); err != nil {
 			return nil, err
 		}
 		events = append(events, event)
@@ -83,7 +112,12 @@ func (s *Storage) FindAllByUserIDAndPeriod(ctx context.Context, userID storage.U
 	return events, nil
 }
 
-func (s *Storage) HasByUserIDAndPeriod(ctx context.Context, userID storage.UserID, from time.Time, to time.Time) (bool, error) {
+func (s *Storage) HasByUserIDAndPeriod(
+	ctx context.Context,
+	userID storage.UserID,
+	from time.Time,
+	to time.Time,
+) (bool, error) {
 	row := s.db.QueryRowContext(ctx, fmt.Sprintf("select exists (%s) as exists", selectAllQuery), userID, from, to)
 	if row.Err() != nil {
 		return false, row.Err()

@@ -8,9 +8,7 @@ import (
 	"github.com/mayerkv/otus_go_homework/hw12_13_14_15_calendar/internal/storage"
 )
 
-var (
-	ErrDateBusy = errors.New("date is busy")
-)
+var ErrDateBusy = errors.New("date is busy")
 
 type App struct {
 	logger  Logger
@@ -29,8 +27,10 @@ type Storage interface {
 	Save(ctx context.Context, event *storage.Event) error
 	FindByID(ctx context.Context, eventID storage.EventID) (*storage.Event, error)
 	Delete(ctx context.Context, event *storage.Event) error
-	FindAllByUserIDAndPeriod(ctx context.Context, userID storage.UserID,
-		from time.Time, to time.Time) ([]storage.Event, error)
+	FindAllByUserIDAndPeriod(
+		ctx context.Context, userID storage.UserID,
+		from time.Time, to time.Time,
+	) ([]storage.Event, error)
 	HasByUserIDAndPeriod(ctx context.Context, userID storage.UserID, from time.Time, to time.Time) (bool, error)
 }
 
@@ -38,7 +38,12 @@ func New(logger Logger, storage Storage) *App {
 	return &App{logger, storage}
 }
 
-func (a *App) CreateEvent(ctx context.Context, title, description, ownerID string, startAt, endAt time.Time, notifyThreshold time.Duration) error {
+func (a *App) CreateEvent(
+	ctx context.Context,
+	title, description, ownerID string,
+	startAt, endAt time.Time,
+	notifyThreshold time.Duration,
+) error {
 	isBusy, err := a.storage.HasByUserIDAndPeriod(ctx, storage.UserID(ownerID), startAt, endAt)
 	if err != nil {
 		return err

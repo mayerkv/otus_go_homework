@@ -42,7 +42,10 @@ func (s *Storage) Delete(ctx context.Context, event *storage.Event) error {
 	return nil
 }
 
-func (s *Storage) FindAllByUserIDAndPeriod(ctx context.Context, userID storage.UserID, from, to time.Time) ([]storage.Event, error) {
+func (s *Storage) FindAllByUserIDAndPeriod(
+	ctx context.Context, userID storage.UserID,
+	from, to time.Time,
+) ([]storage.Event, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	events := make([]storage.Event, 0)
@@ -72,7 +75,7 @@ func (s *Storage) HasByUserIDAndPeriod(ctx context.Context, userID storage.UserI
 }
 
 func (s *Storage) inRange(date, from, to time.Time) bool {
-	return date.After(from) && date.Before(to)
+	return date.Equal(from) || date.Equal(to) || (date.After(from) && date.Before(to))
 }
 
 func New() *Storage {
