@@ -43,14 +43,14 @@ func (s *Storage) Delete(ctx context.Context, event *storage.Event) error {
 }
 
 func (s *Storage) FindAllByUserIDAndPeriod(
-	ctx context.Context, userID storage.UserID,
+	ctx context.Context, ownerID storage.UserID,
 	from, to time.Time,
 ) ([]storage.Event, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	events := make([]storage.Event, 0)
 	for _, event := range s.items {
-		if event.OwnerID != userID {
+		if event.OwnerID != ownerID {
 			continue
 		}
 		if s.inRange(event.StartAt, from, to) || s.inRange(event.EndAt, from, to) {
@@ -60,12 +60,37 @@ func (s *Storage) FindAllByUserIDAndPeriod(
 	return events, nil
 }
 
-func (s *Storage) HasByUserIDAndPeriod(ctx context.Context, userID storage.UserID, from, to time.Time) (bool, error) {
+func (s *Storage) HasByUserIDAndPeriod(ctx context.Context, ownerID storage.UserID, from, to time.Time) (bool, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	for _, event := range s.items {
-		if event.OwnerID != userID {
+		if event.OwnerID != ownerID {
 			continue
+		}
+		if s.inRange(event.StartAt, from, to) || s.inRange(event.EndAt, from, to) {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func (s *Storage) HasByUserIDAndPeriodForUpdate(
+	ctx context.Context,
+	forUpdate storage.EventID,
+	ownerID storage.UserID,
+	from time.Time,
+	to time.Time,
+) (bool, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for _, event := range s.items {
+		if event.OwnerID != ownerID {
+			continue
+		}
+		if event.ID == forUpdate {
+			if s.inRange(from, event.StartAt, event.EndAt) && s.inRange(to, event.StartAt, event.EndAt) {
+				return false, nil
+			}
 		}
 		if s.inRange(event.StartAt, from, to) || s.inRange(event.EndAt, from, to) {
 			return true, nil

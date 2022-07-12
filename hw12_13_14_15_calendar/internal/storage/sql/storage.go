@@ -79,11 +79,11 @@ func (s *Storage) Delete(ctx context.Context, event *storage.Event) error {
 
 func (s *Storage) FindAllByUserIDAndPeriod(
 	ctx context.Context,
-	userID storage.UserID,
+	ownerID storage.UserID,
 	from time.Time,
 	to time.Time,
 ) ([]storage.Event, error) {
-	rows, err := s.db.QueryContext(ctx, selectAllQuery, userID, from, to)
+	rows, err := s.db.QueryContext(ctx, selectAllQuery, ownerID, from, to)
 	if err != nil {
 		return nil, err
 	}
@@ -114,11 +114,39 @@ func (s *Storage) FindAllByUserIDAndPeriod(
 
 func (s *Storage) HasByUserIDAndPeriod(
 	ctx context.Context,
-	userID storage.UserID,
+	ownerID storage.UserID,
 	from time.Time,
 	to time.Time,
 ) (bool, error) {
-	row := s.db.QueryRowContext(ctx, fmt.Sprintf("select exists (%s) as exists", selectAllQuery), userID, from, to)
+	row := s.db.QueryRowContext(ctx, fmt.Sprintf("select exists (%s) as exists", selectAllQuery), ownerID, from, to)
+	if row.Err() != nil {
+		return false, row.Err()
+	}
+	var res struct {
+		Exists bool
+	}
+	if err := row.Scan(&res); err != nil {
+		return false, err
+	}
+
+	return res.Exists, nil
+}
+
+func (s *Storage) HasByUserIDAndPeriodForUpdate(
+	ctx context.Context,
+	forUpdate storage.EventID,
+	ownerID storage.UserID,
+	from time.Time,
+	to time.Time,
+) (bool, error) {
+	row := s.db.QueryRowContext(
+		ctx,
+		fmt.Sprintf("select exists (%s) as exists", selectAllForUpdateQuery),
+		ownerID,
+		forUpdate,
+		from,
+		to,
+	)
 	if row.Err() != nil {
 		return false, row.Err()
 	}
@@ -197,3 +225,8 @@ const selectAllQuery = `select id, title, start_at, end_at, description, owner_i
 from events
 where owner_id = $1 
   and (start_at between $2 and $3 or end_at between $2 and $3)`
+
+const selectAllForUpdateQuery = `select id, title, start_at, end_at, description, owner_id, notify_at
+from events
+where owner_id = $1 and id != $2
+  and (start_at between $3 and $4 or end_at between $3 and $4)`
