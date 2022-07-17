@@ -19,13 +19,13 @@ func TestStorage_Save(t *testing.T) {
 		items: items,
 	}
 	aEvent := storage.Event{
-		ID:          storage.EventID(uuid.NewString()),
-		Title:       "test",
-		StartAt:     time.Now(),
-		EndAt:       time.Now().Add(30 * time.Second),
-		Description: "",
-		OwnerID:     storage.UserID(uuid.NewString()),
-		NotifyAt:    time.Time{},
+		ID:           storage.EventID(uuid.NewString()),
+		Title:        "test",
+		StartAt:      time.Now(),
+		EndAt:        time.Now().Add(30 * time.Second),
+		Description:  "",
+		OwnerID:      storage.UserID(uuid.NewString()),
+		NotifyBefore: 10 * time.Minute,
 	}
 
 	err := store.Save(context.Background(), &aEvent)
@@ -39,13 +39,13 @@ func TestStorage_FindByID(t *testing.T) {
 	t.Run(
 		"when event is exists, returns event", func(t *testing.T) {
 			aEvent := storage.Event{
-				ID:          storage.EventID(uuid.NewString()),
-				Title:       "test",
-				StartAt:     time.Now(),
-				EndAt:       time.Now().Add(30 * time.Second),
-				Description: "",
-				OwnerID:     storage.UserID(uuid.NewString()),
-				NotifyAt:    time.Time{},
+				ID:           storage.EventID(uuid.NewString()),
+				Title:        "test",
+				StartAt:      time.Now(),
+				EndAt:        time.Now().Add(30 * time.Second),
+				Description:  "",
+				OwnerID:      storage.UserID(uuid.NewString()),
+				NotifyBefore: 10 * time.Minute,
 			}
 			store := &Storage{
 				mu:    &sync.RWMutex{},
@@ -61,13 +61,13 @@ func TestStorage_FindByID(t *testing.T) {
 	t.Run(
 		"when event does not exists, returns nil", func(t *testing.T) {
 			aEvent := storage.Event{
-				ID:          storage.EventID(uuid.NewString()),
-				Title:       "test",
-				StartAt:     time.Now(),
-				EndAt:       time.Now().Add(30 * time.Second),
-				Description: "",
-				OwnerID:     storage.UserID(uuid.NewString()),
-				NotifyAt:    time.Time{},
+				ID:           storage.EventID(uuid.NewString()),
+				Title:        "test",
+				StartAt:      time.Now(),
+				EndAt:        time.Now().Add(30 * time.Second),
+				Description:  "",
+				OwnerID:      storage.UserID(uuid.NewString()),
+				NotifyBefore: 10 * time.Minute,
 			}
 			store := &Storage{
 				mu:    &sync.RWMutex{},
@@ -83,13 +83,13 @@ func TestStorage_FindByID(t *testing.T) {
 	t.Run(
 		"concurrent access", func(t *testing.T) {
 			aEvent := storage.Event{
-				ID:          storage.EventID(uuid.NewString()),
-				Title:       "test",
-				StartAt:     time.Now(),
-				EndAt:       time.Now().Add(30 * time.Second),
-				Description: "",
-				OwnerID:     storage.UserID(uuid.NewString()),
-				NotifyAt:    time.Time{},
+				ID:           storage.EventID(uuid.NewString()),
+				Title:        "test",
+				StartAt:      time.Now(),
+				EndAt:        time.Now().Add(30 * time.Second),
+				Description:  "",
+				OwnerID:      storage.UserID(uuid.NewString()),
+				NotifyBefore: 10 * time.Minute,
 			}
 			store := &Storage{
 				mu:    &sync.RWMutex{},
@@ -117,13 +117,13 @@ func TestStorage_Delete(t *testing.T) {
 	t.Run(
 		"when event is exists, then delete", func(t *testing.T) {
 			aEvent := storage.Event{
-				ID:          storage.EventID(uuid.NewString()),
-				Title:       "test",
-				StartAt:     time.Now(),
-				EndAt:       time.Now().Add(30 * time.Second),
-				Description: "",
-				OwnerID:     storage.UserID(uuid.NewString()),
-				NotifyAt:    time.Time{},
+				ID:           storage.EventID(uuid.NewString()),
+				Title:        "test",
+				StartAt:      time.Now(),
+				EndAt:        time.Now().Add(30 * time.Second),
+				Description:  "",
+				OwnerID:      storage.UserID(uuid.NewString()),
+				NotifyBefore: 10 * time.Minute,
 			}
 			store := &Storage{
 				mu:    &sync.RWMutex{},
@@ -140,13 +140,13 @@ func TestStorage_Delete(t *testing.T) {
 	t.Run(
 		"when even does not exists, returns nil", func(t *testing.T) {
 			aEvent := storage.Event{
-				ID:          storage.EventID(uuid.NewString()),
-				Title:       "test",
-				StartAt:     time.Now(),
-				EndAt:       time.Now().Add(30 * time.Second),
-				Description: "",
-				OwnerID:     storage.UserID(uuid.NewString()),
-				NotifyAt:    time.Time{},
+				ID:           storage.EventID(uuid.NewString()),
+				Title:        "test",
+				StartAt:      time.Now(),
+				EndAt:        time.Now().Add(30 * time.Second),
+				Description:  "",
+				OwnerID:      storage.UserID(uuid.NewString()),
+				NotifyBefore: 10 * time.Minute,
 			}
 			store := &Storage{
 				mu:    &sync.RWMutex{},
@@ -163,13 +163,13 @@ func TestStorage_FindAllByUserIDAndPeriod(t *testing.T) {
 	startAt, _ := time.Parse(time.RFC3339, "2006-01-01T10:00:00Z")
 	endAt := startAt.Add(30 * time.Minute)
 	aEvent := storage.Event{
-		ID:          storage.EventID(uuid.NewString()),
-		Title:       "test",
-		StartAt:     startAt,
-		EndAt:       endAt,
-		Description: "",
-		OwnerID:     storage.UserID(uuid.NewString()),
-		NotifyAt:    time.Time{},
+		ID:           storage.EventID(uuid.NewString()),
+		Title:        "test",
+		StartAt:      startAt,
+		EndAt:        endAt,
+		Description:  "",
+		OwnerID:      storage.UserID(uuid.NewString()),
+		NotifyBefore: 10 * time.Minute,
 	}
 
 	items := map[storage.EventID]storage.Event{
@@ -217,13 +217,13 @@ func TestStorage_HasByUserIDAndPeriod(t *testing.T) {
 	startAt, _ := time.Parse(time.RFC3339, "2006-01-01T10:00:00Z")
 	endAt := startAt.Add(30 * time.Minute)
 	aEvent := storage.Event{
-		ID:          storage.EventID(uuid.NewString()),
-		Title:       "test",
-		StartAt:     startAt,
-		EndAt:       endAt,
-		Description: "",
-		OwnerID:     storage.UserID(uuid.NewString()),
-		NotifyAt:    time.Time{},
+		ID:           storage.EventID(uuid.NewString()),
+		Title:        "test",
+		StartAt:      startAt,
+		EndAt:        endAt,
+		Description:  "",
+		OwnerID:      storage.UserID(uuid.NewString()),
+		NotifyBefore: 10 * time.Minute,
 	}
 
 	items := map[storage.EventID]storage.Event{

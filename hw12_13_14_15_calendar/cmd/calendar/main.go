@@ -10,6 +10,7 @@ import (
 
 	"github.com/mayerkv/otus_go_homework/hw12_13_14_15_calendar/internal/app"
 	"github.com/mayerkv/otus_go_homework/hw12_13_14_15_calendar/internal/logger"
+	"github.com/mayerkv/otus_go_homework/hw12_13_14_15_calendar/internal/server/grpc"
 	internalhttp "github.com/mayerkv/otus_go_homework/hw12_13_14_15_calendar/internal/server/http"
 	sqlstorage "github.com/mayerkv/otus_go_homework/hw12_13_14_15_calendar/internal/storage/sql"
 	"github.com/spf13/cobra"
@@ -39,6 +40,13 @@ func main() {
 			Use:   "migrate",
 			Short: "Run database migrations",
 			RunE:  runMigrations,
+		},
+	)
+	rootCmd.AddCommand(
+		&cobra.Command{
+			Use:   "grpc",
+			Short: "GRPC server",
+			RunE:  runGRPCServer,
 		},
 	)
 
@@ -126,4 +134,51 @@ func runMigrations(cmd *cobra.Command, args []string) error {
 	}
 
 	return storage.Migrate(context.Background(), args[0])
+}
+
+func runGRPCServer(cmd *cobra.Command, args []string) error {
+	configFile, err := cmd.Root().PersistentFlags().GetString("config")
+	if err != nil {
+		return err
+	}
+
+	config, err := ReadConfig(configFile)
+	if err != nil {
+		return err
+	}
+
+	logg := logger.New(logger.LevelFromString(config.Logger.Level), os.Stderr)
+	storage := sqlstorage.New(
+		config.Postgres.DSN,
+		config.Postgres.MaxOpenConns,
+		config.Postgres.MaxIdleConns,
+		config.Postgres.ConnMaxLifetime,
+		config.Postgres.ConnMaxIdleTime,
+	)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := storage.Connect(ctx); err != nil {
+		return err
+	}
+
+	calendar := app.New(logg, storage)
+	server := grpc.NewServer(config.GRPC.Host, config.GRPC.Port, logg, calendar)
+
+	notifyCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
+	defer stop()
+
+	go func() {
+		<-notifyCtx.Done()
+
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
+		defer cancel()
+
+		if err := server.Stop(ctx); err != nil {
+			logg.Error("failed to stop grpc server: " + err.Error())
+		}
+	}()
+
+	logg.Info("calendar is running...")
+
+	return server.Start(notifyCtx)
 }

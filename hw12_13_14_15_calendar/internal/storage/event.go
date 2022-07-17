@@ -10,12 +10,16 @@ func (id EventID) String() string {
 
 type UserID string
 
+func (id UserID) String() string {
+	return string(id)
+}
+
 type Event struct {
-	ID          EventID
-	Title       string
-	StartAt     time.Time
-	EndAt       time.Time
-	Description string
-	OwnerID     UserID
-	NotifyAt    time.Time
+	ID           EventID
+	Title        string
+	StartAt      time.Time
+	EndAt        time.Time
+	Description  string
+	OwnerID      UserID
+	NotifyBefore time.Duration
 }

@@ -9,6 +9,7 @@ import (
 type Config struct {
 	Logger   LoggerConf
 	HTTP     HTTPConf
+	GRPC     GRPCConf
 	Postgres PostgresConf
 }
 
@@ -21,6 +22,11 @@ func NewConfig() Config {
 }
 
 type HTTPConf struct {
+	Port string
+	Host string
+}
+
+type GRPCConf struct {
 	Port string
 	Host string
 }

@@ -69,13 +69,13 @@ func (a *App) CreateEvent(
 	}
 
 	event := &storage.Event{
-		ID:          id,
-		Title:       title,
-		StartAt:     startAt,
-		EndAt:       endAt,
-		Description: description,
-		OwnerID:     storage.UserID(ownerID),
-		NotifyAt:    startAt.Truncate(notifyThreshold),
+		ID:           id,
+		Title:        title,
+		StartAt:      startAt,
+		EndAt:        endAt,
+		Description:  description,
+		OwnerID:      storage.UserID(ownerID),
+		NotifyBefore: notifyThreshold,
 	}
 
 	if err := a.storage.Save(ctx, event); err != nil {
@@ -104,7 +104,7 @@ func (a *App) UpdateEvent(
 	event.OwnerID = storage.UserID(ownerID)
 	event.StartAt = startAt
 	event.EndAt = endAt
-	event.NotifyAt = startAt.Truncate(notifyThreshold)
+	event.NotifyBefore = notifyThreshold
 
 	isBusy, err := a.storage.HasByUserIDAndPeriodForUpdate(
 		ctx,

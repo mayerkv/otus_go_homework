@@ -33,14 +33,21 @@ func (s *Storage) NextID(ctx context.Context) (storage.EventID, error) {
 func (s *Storage) Save(ctx context.Context, event *storage.Event) error {
 	_, err := s.db.ExecContext(
 		ctx,
-		saveQuery,
+		`insert into events (id, title, start_at, end_at, description, owner_id, notify_before)
+		values ($1, $2, $3, $4, $5, $6, $7)
+		on conflict (id) do update
+		set title = excluded.title,
+			start_at = excluded.start_at,
+			end_at = excluded.end_at,
+			description = excluded.description,
+			notify_before = excluded.notify_before`,
 		event.ID,
 		event.Title,
 		event.StartAt,
 		event.EndAt,
 		event.Description,
 		event.OwnerID,
-		event.NotifyAt,
+		event.NotifyBefore,
 	)
 	if err != nil {
 		return err
@@ -49,23 +56,29 @@ func (s *Storage) Save(ctx context.Context, event *storage.Event) error {
 }
 
 func (s *Storage) FindByID(ctx context.Context, eventID storage.EventID) (*storage.Event, error) {
-	row := s.db.QueryRowContext(ctx, selectQuery, eventID)
-	if errors.Is(row.Err(), sql.ErrNoRows) {
-		return nil, nil
-	}
-	if row.Err() != nil {
-		return nil, row.Err()
-	}
+	row := s.db.QueryRowContext(
+		ctx,
+		`select id, title, start_at, end_at, description, owner_id, extract(epoch from notify_before)
+		from events
+		where id = $1`,
+		eventID,
+	)
 
 	var event storage.Event
-	if err := row.Scan(
-		event.ID,
-		event.Title,
-		event.StartAt,
-		event.EndAt,
-		event.Description,
-		event.NotifyAt,
-	); err != nil {
+	err := row.Scan(
+		&event.ID,
+		&event.Title,
+		&event.StartAt,
+		&event.EndAt,
+		&event.Description,
+		&event.OwnerID,
+		&event.NotifyBefore,
+	)
+
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
 		return nil, err
 	}
 
@@ -73,7 +86,7 @@ func (s *Storage) FindByID(ctx context.Context, eventID storage.EventID) (*stora
 }
 
 func (s *Storage) Delete(ctx context.Context, event *storage.Event) error {
-	_, err := s.db.ExecContext(ctx, deleteQuery, event.ID)
+	_, err := s.db.ExecContext(ctx, `delete from events where id = $1`, event.ID)
 	return err
 }
 
@@ -83,7 +96,15 @@ func (s *Storage) FindAllByUserIDAndPeriod(
 	from time.Time,
 	to time.Time,
 ) ([]storage.Event, error) {
-	rows, err := s.db.QueryContext(ctx, selectAllQuery, ownerID, from, to)
+	rows, err := s.db.QueryContext(
+		ctx,
+		`select id, title, start_at, end_at, description, owner_id, extract(epoch from notify_before)
+		from events
+		where owner_id = $1 and (start_at between $2 and $3 or end_at between $2 and $3)`,
+		ownerID,
+		from,
+		to,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -97,12 +118,13 @@ func (s *Storage) FindAllByUserIDAndPeriod(
 	for rows.Next() {
 		var event storage.Event
 		if err := rows.Scan(
-			event.ID,
-			event.Title,
-			event.StartAt,
-			event.EndAt,
-			event.Description,
-			event.NotifyAt,
+			&event.ID,
+			&event.Title,
+			&event.StartAt,
+			&event.EndAt,
+			&event.Description,
+			&event.OwnerID,
+			&event.NotifyBefore,
 		); err != nil {
 			return nil, err
 		}
@@ -118,18 +140,25 @@ func (s *Storage) HasByUserIDAndPeriod(
 	from time.Time,
 	to time.Time,
 ) (bool, error) {
-	row := s.db.QueryRowContext(ctx, fmt.Sprintf("select exists (%s) as exists", selectAllQuery), ownerID, from, to)
+	row := s.db.QueryRowContext(
+		ctx,
+		`select exists (
+			select * from events
+			where owner_id = $1 and ($2 between start_at and end_at or $3 between start_at and end_at)
+	  	)`,
+		ownerID,
+		from,
+		to,
+	)
 	if row.Err() != nil {
 		return false, row.Err()
 	}
-	var res struct {
-		Exists bool
-	}
-	if err := row.Scan(&res); err != nil {
+	var exists bool
+	if err := row.Scan(&exists); err != nil {
 		return false, err
 	}
 
-	return res.Exists, nil
+	return exists, nil
 }
 
 func (s *Storage) HasByUserIDAndPeriodForUpdate(
@@ -141,7 +170,10 @@ func (s *Storage) HasByUserIDAndPeriodForUpdate(
 ) (bool, error) {
 	row := s.db.QueryRowContext(
 		ctx,
-		fmt.Sprintf("select exists (%s) as exists", selectAllForUpdateQuery),
+		`select exists (
+			select * from events
+			where owner_id = $1 and id != $2 and (start_at between $3 and $4 or end_at between $3 and $4)
+    	)`,
 		ownerID,
 		forUpdate,
 		from,
@@ -150,14 +182,12 @@ func (s *Storage) HasByUserIDAndPeriodForUpdate(
 	if row.Err() != nil {
 		return false, row.Err()
 	}
-	var res struct {
-		Exists bool
-	}
-	if err := row.Scan(&res); err != nil {
+	var exists bool
+	if err := row.Scan(&exists); err != nil {
 		return false, err
 	}
 
-	return res.Exists, nil
+	return exists, nil
 }
 
 func New(dsn string, maxOpenConns, maxIdleConns int, connMaxLifetime, connMaxIdleTime time.Duration) *Storage {
@@ -205,28 +235,3 @@ func (s *Storage) Migrate(ctx context.Context, command string) error {
 
 	return goose.Run(command, s.db, "migrations")
 }
-
-const saveQuery = `insert into events (id, title, start_at, end_at, description, owner_id, notify_at)
-values ($1, $2, $3, $4, $5, $6, $7)
-on conflict (id) do update
-set title = excluded.title,
-	start_at = excluded.start_at,
-	end_at = excluded.end_at,
-	description = excluded.description,
-	notify_at = excluded.notify_at`
-
-const selectQuery = `select id, title, start_at, end_at, description, owner_id, notify_at
-from events
-where id = $1`
-
-const deleteQuery = `delete from events where id = $1`
-
-const selectAllQuery = `select id, title, start_at, end_at, description, owner_id, notify_at
-from events
-where owner_id = $1 
-  and (start_at between $2 and $3 or end_at between $2 and $3)`
-
-const selectAllForUpdateQuery = `select id, title, start_at, end_at, description, owner_id, notify_at
-from events
-where owner_id = $1 and id != $2
-  and (start_at between $3 and $4 or end_at between $3 and $4)`
