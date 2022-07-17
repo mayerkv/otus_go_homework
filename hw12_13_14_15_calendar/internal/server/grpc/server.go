@@ -9,8 +9,6 @@ import (
 	"github.com/mayerkv/otus_go_homework/hw12_13_14_15_calendar/internal/app"
 	"github.com/mayerkv/otus_go_homework/hw12_13_14_15_calendar/internal/server/grpc/pb"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -43,7 +41,12 @@ func (s *Server) Start(ctx context.Context) error {
 		return fmt.Errorf("start Server: %w", err)
 	}
 
-	srv := grpc.NewServer()
+	srv := grpc.NewServer(
+		grpc.ChainUnaryInterceptor(
+			LoggingInterceptor(s.logger),
+			ErrorInterceptor,
+		),
+	)
 	pb.RegisterEventsServer(srv, s)
 
 	s.srv = srv
@@ -76,7 +79,7 @@ func (s *Server) CreateEvent(
 		request.Event.NotifyBefore.AsDuration(),
 	)
 	if err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
+		return nil, err
 	}
 
 	return &pb.CreateEventResponse{EventId: eventID.String()}, nil
@@ -94,7 +97,7 @@ func (s *Server) UpdateEvent(ctx context.Context, request *pb.UpdateEventRequest
 		request.Event.NotifyBefore.AsDuration(),
 	)
 	if err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
+		return nil, err
 	}
 
 	return &emptypb.Empty{}, nil
@@ -103,7 +106,7 @@ func (s *Server) UpdateEvent(ctx context.Context, request *pb.UpdateEventRequest
 func (s *Server) DeleteEvent(ctx context.Context, request *pb.DeleteEventRequest) (*emptypb.Empty, error) {
 	err := s.app.DeleteEvent(ctx, request.EventId)
 	if err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
+		return nil, err
 	}
 
 	return &emptypb.Empty{}, nil

@@ -37,11 +37,11 @@ func NewServer(logger Logger, app Application, host, port string) *Server {
 
 func (s *Server) Start(ctx context.Context) error {
 	mux := http.NewServeMux()
-	mux.Handle("/health", loggingMiddleware(HealthCheckHandler{}, s.logger))
+	mux.Handle("/health", HealthCheckHandler{})
 
 	s.server = &http.Server{
 		Addr:         net.JoinHostPort(s.host, s.port),
-		Handler:      mux,
+		Handler:      loggingMiddleware(mux, s.logger),
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
 	}
@@ -56,11 +56,4 @@ func (s *Server) Start(ctx context.Context) error {
 
 func (s *Server) Stop(ctx context.Context) error {
 	return s.server.Shutdown(ctx)
-}
-
-type HealthCheckHandler struct{}
-
-func (h HealthCheckHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(`{"status":"ok"}`))
 }
