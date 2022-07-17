@@ -1,5 +1,9 @@
 [logger]
 level = "INFO"
 
-# TODO
-# ...
+[http]
+port = 8080
+host = "0.0.0.0"
+
+[postgres]
+dsn = "postgresql://user:password@localhost:5432/calendar?sslmode=disable"

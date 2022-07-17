@@ -2,30 +2,65 @@ package internalhttp
 
 import (
 	"context"
+	"errors"
+	"net"
+	"net/http"
+	"time"
 )
 
-type Server struct { // TODO
+type Server struct {
+	logger Logger
+	app    Application
+	host   string
+	port   string
+	server *http.Server
 }
 
-type Logger interface { // TODO
+type Logger interface {
+	Debug(msg string)
+	Info(msg string)
+	Warn(msg string)
+	Error(msg string)
 }
 
 type Application interface { // TODO
 }
 
-func NewServer(logger Logger, app Application) *Server {
-	return &Server{}
+func NewServer(logger Logger, app Application, host, port string) *Server {
+	return &Server{
+		logger: logger,
+		app:    app,
+		host:   host,
+		port:   port,
+	}
 }
 
 func (s *Server) Start(ctx context.Context) error {
-	// TODO
-	<-ctx.Done()
+	mux := http.NewServeMux()
+	mux.Handle("/health", loggingMiddleware(HealthCheckHandler{}, s.logger))
+
+	s.server = &http.Server{
+		Addr:         net.JoinHostPort(s.host, s.port),
+		Handler:      mux,
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 10 * time.Second,
+	}
+
+	s.logger.Info("server listen at " + s.server.Addr)
+	if err := s.server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		return err
+	}
+
 	return nil
 }
 
 func (s *Server) Stop(ctx context.Context) error {
-	// TODO
-	return nil
+	return s.server.Shutdown(ctx)
 }
 
-// TODO
+type HealthCheckHandler struct{}
+
+func (h HealthCheckHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(`{"status":"ok"}`))
+}

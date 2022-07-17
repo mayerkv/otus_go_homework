@@ -1,20 +1,51 @@
 package main
 
-// При желании конфигурацию можно вынести в internal/config.
-// Организация конфига в main принуждает нас сужать API компонентов, использовать
-// при их конструировании только необходимые параметры, а также уменьшает вероятность циклической зависимости.
+import (
+	"time"
+
+	"github.com/spf13/viper"
+)
+
 type Config struct {
-	Logger LoggerConf
-	// TODO
+	Logger   LoggerConf
+	HTTP     HTTPConf
+	Postgres PostgresConf
 }
 
 type LoggerConf struct {
 	Level string
-	// TODO
 }
 
 func NewConfig() Config {
 	return Config{}
 }
 
-// TODO
+type HTTPConf struct {
+	Port string
+	Host string
+}
+
+type PostgresConf struct {
+	DSN             string
+	MaxOpenConns    int
+	ConnMaxLifetime time.Duration
+	MaxIdleConns    int
+	ConnMaxIdleTime time.Duration
+}
+
+func ReadConfig(path string) (*Config, error) {
+	v := viper.New()
+	v.AutomaticEnv()
+	v.SetConfigFile(path)
+
+	if err := v.ReadInConfig(); err != nil {
+		return nil, err
+	}
+
+	config := NewConfig()
+	if err := v.Unmarshal(&config); err != nil {
+		return nil, err
+	}
+
+	return &config, nil
+}
