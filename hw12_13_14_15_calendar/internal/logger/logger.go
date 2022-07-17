@@ -2,6 +2,7 @@ package logger
 
 import (
 	"fmt"
+	"io"
 	"strings"
 	"time"
 )
@@ -24,29 +25,30 @@ var levelDict = map[Level]string{
 
 type Logger struct {
 	lvl Level
+	w   io.Writer
 }
 
-func New(lvl Level) *Logger {
-	return &Logger{lvl: lvl}
+func New(lvl Level, w io.Writer) *Logger {
+	return &Logger{lvl: lvl, w: w}
 }
 
-func (l Logger) Debug(msg string) {
+func (l *Logger) Debug(msg string) {
 	l.Log(LevelDebug, msg)
 }
 
-func (l Logger) Info(msg string) {
+func (l *Logger) Info(msg string) {
 	l.Log(LevelInfo, msg)
 }
 
-func (l Logger) Warn(msg string) {
+func (l *Logger) Warn(msg string) {
 	l.Log(LevelWarn, msg)
 }
 
-func (l Logger) Error(msg string) {
+func (l *Logger) Error(msg string) {
 	l.Log(LevelError, msg)
 }
 
-func (l Logger) Log(level Level, msg string) {
+func (l *Logger) Log(level Level, msg string) {
 	if l.lvl > level {
 		return
 	}
@@ -56,7 +58,7 @@ func (l Logger) Log(level Level, msg string) {
 		prefix = p
 	}
 
-	fmt.Printf("%s [%s] %s\n", time.Now().UTC().Format(time.RFC3339), prefix, msg)
+	fmt.Fprintf(l.w, "%s [%s] %s\n", time.Now().UTC().Format(time.RFC3339), prefix, msg)
 }
 
 func LevelFromString(l string) Level {

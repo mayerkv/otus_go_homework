@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log"
+	"os"
 	"os/signal"
 	"syscall"
 	"time"
@@ -19,21 +20,27 @@ func main() {
 		Use:   "calendar",
 		Short: "Calendar service",
 	}
-	rootCmd.AddCommand(&cobra.Command{
-		Use:   "http",
-		Short: "Run http server",
-		RunE:  runHTTPServer,
-	})
-	rootCmd.AddCommand(&cobra.Command{
-		Use:   "version",
-		Short: "App version",
-		RunE:  runVersion,
-	})
-	rootCmd.AddCommand(&cobra.Command{
-		Use:   "migrate",
-		Short: "Run database migrations",
-		RunE:  runMigrations,
-	})
+	rootCmd.AddCommand(
+		&cobra.Command{
+			Use:   "http",
+			Short: "Run http server",
+			RunE:  runHTTPServer,
+		},
+	)
+	rootCmd.AddCommand(
+		&cobra.Command{
+			Use:   "version",
+			Short: "App version",
+			RunE:  runVersion,
+		},
+	)
+	rootCmd.AddCommand(
+		&cobra.Command{
+			Use:   "migrate",
+			Short: "Run database migrations",
+			RunE:  runMigrations,
+		},
+	)
 
 	rootCmd.PersistentFlags().String("config", "/etc/calendar/config.toml", "Path to configuration file")
 
@@ -58,7 +65,7 @@ func runHTTPServer(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	logg := logger.New(logger.LevelFromString(config.Logger.Level))
+	logg := logger.New(logger.LevelFromString(config.Logger.Level), os.Stderr)
 	storage := sqlstorage.New(
 		config.Postgres.DSN,
 		config.Postgres.MaxOpenConns,
