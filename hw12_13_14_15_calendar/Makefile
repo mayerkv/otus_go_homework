@@ -38,12 +38,6 @@ clean:
 	rm -rf ./bin
 
 generate:
-	rm -rf internal/server/grpc/pb
-	mkdir -p internal/server/grpc/pb
-	protoc \
-    		--proto_path=api/ \
-    		--go_out=internal/server/grpc/pb \
-    		--go-grpc_out=internal/server/grpc/pb \
-    		api/*.proto
+	go generate ./...
 
 .PHONY: build run build-img run-img version test lint clean generate
